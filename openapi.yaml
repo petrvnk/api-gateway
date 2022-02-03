@@ -15,7 +15,7 @@ externalDocs:
 servers:
   - url: /v1
 paths:
-  '/customer/{externalCustomerId}':
+  '/v1/customer/{externalCustomerId}':
     get:
       tags:
         - Customer
@@ -36,7 +36,7 @@ paths:
                 $ref: '#/components/schemas/CustomerRes'
         '404':
           description: externalCustomerId doesn't exist
-  '/activation-profiles':
+  '/v1/activation-profiles':
     get:
       tags:
         - Activation
@@ -58,7 +58,7 @@ paths:
                 $ref: '#/components/schemas/ActivationProfiles'
         '404':
           description: Customer Id doesn't exist
-  '/configuration-profiles/{code}':
+  '/v1/configuration-profiles/{code}':
     get:
       tags:
         - Activation
@@ -77,6 +77,12 @@ paths:
           required: true
           schema:
             type: string
+        - name: supervised
+          in: query
+          description: supervised
+          required: true
+          schema:
+            type: boolean
         - name: uem
           in: query
           description: uem
@@ -94,7 +100,7 @@ paths:
                 type: string
         '404':
           description: Customer Id or Activation profile doesn't exist
-  '/devices':
+  '/v1/devices':
     get:
       tags:
         - Device
