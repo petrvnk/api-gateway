@@ -2,20 +2,20 @@ openapi: 3.0.1
 info:
   title: OpenAPIGateway
   description: ''
-  termsOfService: http://swagger.io/terms/
+  termsOfService: 'http://swagger.io/terms/'
   contact:
     email: rostislav.pridal@jamf.com
   license:
     name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
   version: 1.0.0
 externalDocs:
   description: Find out more about Swagger
-  url: http://swagger.io
+  url: 'http://swagger.io'
 servers:
   - url: /v1
 paths:
-  /customer/{externalCustomerId}:
+  '/customer/{externalCustomerId}':
     get:
       tags:
         - Customer
@@ -28,39 +28,40 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: success
           content:
-            '*/*':
+            text/json:
               schema:
-                $ref: '#/components/schemas/Customer'
-        404:
+                $ref: '#/components/schemas/CustomerRes'
+        '404':
           description: externalCustomerId doesn't exist
-  /enrollment:
+  '/activation-profiles':
     get:
       tags:
-      - Enrollment
-      summary: Get all active enrollment links for given customer
-      operationId: getEnrollmentLinksUsingGET
+        - Activation
+      summary: Get all activation profiles for given customer
+      operationId: getActivationProfilesUsingGET
       parameters:
-      - name: customerId
-        in: query
-        description: customerId
-        required: true
-        schema:
-          type: string
+        - name: customerId
+          in: query
+          description: customerId
+          required: true
+          schema:
+            type: string
       responses:
-        200:
+        '200':
           description: OK
           content:
-            '*/*':
+            text/json:
               schema:
-                $ref: '#/components/schemas/EnrollmentLinks'         
-          
-  /enrollment/{code}/profiles:
+                $ref: '#/components/schemas/ActivationProfiles'
+        '404':
+          description: Customer Id doesn't exist
+  '/configuration-profiles/{code}':
     get:
       tags:
-        - Enrollment
+        - Activation
       summary: Generate profile templates for importing into UEM
       operationId: generateUsingGET_1
       parameters:
@@ -76,46 +77,108 @@ paths:
           required: true
           schema:
             type: string
+        - name: uem
+          in: query
+          description: uem
+          required: true
+          schema:
+            type: string
+            enum:
+            - JAMF_SCHOOL
       responses:
-        200:
+        '200':
           description: OK
           content:
             text/plain:
               schema:
                 type: string
-        404:
-          description: Customer Id or Activation profile doesn't exist 
-          
+        '404':
+          description: Customer Id or Activation profile doesn't exist
+  '/devices':
+    get:
+      tags:
+        - Device
+      parameters:
+        - name: customerId
+          in: query
+          description: customerId
+          required: true
+          example: 4fefddae-90a2-41ac-922f-75c3167668ed
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/json:
+             schema:
+              $ref: '#/components/schemas/Devices'
 components:
   schemas:
-    Customer:
+    CustomerRes:
       type: object
       properties:
-        customerId:
+        id:
           type: string
-          example: '4fefddae-90a2-41ac-922f-75c3167668ed'
-        extenralCustomerId:
+          example: 4fefddae-90a2-41ac-922f-75c3167668ed
+        externalId:
           type: string
-          example: 'f09ed809-9c53-425d-8ec9-93ea6fb49b3a'
-    EnrollmentLinks:
-      title: EnrollmentLinks
+          example: f09ed809-9c53-425d-8ec9-93ea6fb49b3a
+    DeviceRes:
       type: object
       properties:
-        activeLinksCount:
+        id:
+          type: string
+          example: a71f32aa-4583-41cc-80b7-0bbe8b66f9fd
+        externalId:
+          type: string
+          example: b29997aa-dfb4-4ccd-9cff-c2af25f4e301
+        createdAt:
           type: integer
           format: int64
-        allLinksCount:
+          description: timestamp ms in UTC
+          example: 1643893993
+        lastTraffic:
           type: integer
           format: int64
-        lastEnrollment:
+          description: TBD
+          example: 1643893993
+    Devices:
+      type: object
+      properties:
+        activeDeviceCount:
+          type: integer
+          format: int64
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeviceRes'  
+    ActivationProfiles:
+      title: ActivationProfiles
+      type: object
+      properties:
+        activeProfilesCount:
+          type: integer
+          format: int64
+        allProfilesCount:
+          type: integer
+          format: int64
+        lastActivation:
           type: string
         links:
           type: array
           items:
-            $ref: '#/components/schemas/EnrollmentLinkRes'
-    EnrollmentLinkRes:
-      title: EnrollmentLinkRes
+            $ref: '#/components/schemas/ActivationProfileRes'
+    ActivationProfileRes:
+      title: ActivationProfileRes
       type: object
       properties:
         code:
           type: string
+        name:
+          type: string
+        enabled:
+          type: boolean
+  links: {}
+  callbacks: {}
+security: []
