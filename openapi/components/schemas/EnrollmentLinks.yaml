@@ -1,0 +1,15 @@
+title: EnrollmentLinks
+type: object
+properties:
+  activeLinksCount:
+    type: integer
+    format: int64
+  allLinksCount:
+    type: integer
+    format: int64
+  lastEnrollment:
+    type: string
+  links:
+    type: array
+    items:
+      $ref: ./EnrollmentLinkRes.yaml

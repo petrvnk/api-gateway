@@ -1,0 +1,5 @@
+title: EnrollmentLinkRes
+type: object
+properties:
+  code:
+    type: string
