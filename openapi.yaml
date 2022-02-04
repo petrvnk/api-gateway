@@ -15,77 +15,110 @@ externalDocs:
 servers:
   - url: /v1
 paths:
-  '/v1/customer/{externalCustomerId}':
+  '/v1/login':
+    post:
+      tags:
+        - Login
+      description: Endpoint for generating expiring JWT token. Token can be used for requests against Wandera API
+      operationId: login
+      parameters:
+        - name: authorization
+          description: Basic auth header containing base64 hash of clientId and clientSecret. Hash is calculated from string pair "clientId:clientSecret"
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A response containing expiring JWT token that can be used for requests against Wandera API
+          content:
+            text/json:
+              schema:
+                $ref: '#/components/schemas/LoginRes'
+        '403':
+          description: Access denied - can be due to wrong combination  of clientId and clientSecret, request path, method
+        '429':
+          description: A response indicates the client has sent too many requests within given time period
+          headers:
+            X-Rate-Limit-Retry-After-Milliseconds:
+              description: The time (in ms) after which client should retry his request against Wandera API once it hits rate limit restriction
+              schema:
+                type: string
+  '/v1/customer/{externalId}':
     get:
       tags:
         - Customer
-      summary: Get customer detail by external customer id
+      description: This endpoint serves for translations of Jamf external Id to Wandera Id.
+      summary: Get customer Wandera Id by given Jamf external tenant Id
       operationId: getCustomerByExternalCustomerId
       parameters:
-        - name: externalCustomerId
+        - name: externalId
+          description: Jamf tenant Id
           in: path
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: success
+          description: Returns document of Wandera customer Id{id} and Jamf tenant Id{externalId}. 
           content:
             text/json:
               schema:
                 $ref: '#/components/schemas/CustomerRes'
         '404':
-          description: externalCustomerId doesn't exist
-  '/v1/activation-profiles':
+          description: No Wandera customer Id found for given external tenant Id 
+  '/v1/enrollment/activation-profiles':
     get:
       tags:
-        - Activation
-      summary: Get all activation profiles for given customer
+        - Enrollment
+      description: This endpoint returns a list of activation profiles for given Wandera customer Id. Will be used mainly to get the activation profile code used by GET /v1/enrollment/configuration-profiles/{code} endpoint.
+      summary: Get all activation profiles for given customer Id
       operationId: getActivationProfilesUsingGET
       parameters:
         - name: customerId
           in: query
-          description: customerId
+          description: Wandera customer Id
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: OK
+          description: Return list of activation profiles for given Wandera customer Id
           content:
             text/json:
               schema:
                 $ref: '#/components/schemas/ActivationProfiles'
         '404':
           description: Customer Id doesn't exist
-  '/v1/configuration-profiles/{code}':
+  '/v1/enrollment/configuration-profiles':
     get:
       tags:
-        - Activation
-      summary: Generate profile templates for importing into UEM
+        - Enrollment
+      description: This endpoint returns configuration profile by activation profile code. Configuration profiles will be imported to UEM on the Jamf side.
+      summary: Get configuration profile for given activation profile code.
       operationId: generateUsingGET_1
       parameters:
         - name: code
-          in: path
-          description: code
+          in: query
+          description: Activation profile code
           required: true
           schema:
             type: string
         - name: customerId
           in: query
-          description: customerId
+          description: Wandera customer Id
           required: true
           schema:
             type: string
         - name: supervised
           in: query
-          description: supervised
+          description: Specifies if configuration profile is generated for supervised device
           required: true
           schema:
             type: boolean
         - name: uem
           in: query
-          description: uem
+          description: Specifies target UEM. For Jamf School it is JAMF_SCHOOL
           required: true
           schema:
             type: string
@@ -93,34 +126,42 @@ paths:
             - JAMF_SCHOOL
       responses:
         '200':
-          description: OK
+          description: XML representation of configuration profiles. The format is UEM specific and it doesn't have to be valid
           content:
             text/plain:
               schema:
                 type: string
         '404':
-          description: Customer Id or Activation profile doesn't exist
-  '/v1/devices':
+          description: Activation profile doesn't exist for given code and customer Id
+  '/v1/enrollment/devices':
     get:
       tags:
-        - Device
+        - Enrollment
+      description: This endpoint returns a list of Wandera devices for given customer Id.
+      summary: Get a list of devices for given customer Id
       parameters:
         - name: customerId
           in: query
-          description: customerId
+          description: Wandera customer Id
           required: true
           example: 4fefddae-90a2-41ac-922f-75c3167668ed
           schema:
             type: string
       responses:
         '200':
-          description: OK
+          description: List of details for devices enrolled to Wandera. For Jamf Shool,  device is enrolled once we see its trafic on DNS. 
           content:
             text/json:
              schema:
               $ref: '#/components/schemas/Devices'
 components:
   schemas:
+    LoginRes:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
     CustomerRes:
       type: object
       properties:
@@ -140,15 +181,7 @@ components:
           type: string
           example: b29997aa-dfb4-4ccd-9cff-c2af25f4e301
         createdAt:
-          type: integer
-          format: int64
-          description: timestamp ms in UTC
-          example: 1643893993
-        lastTraffic:
-          type: integer
-          format: int64
-          description: TBD
-          example: 1643893993
+          type: string
     Devices:
       type: object
       properties:
@@ -163,28 +196,27 @@ components:
       title: ActivationProfiles
       type: object
       properties:
-        activeProfilesCount:
-          type: integer
-          format: int64
-        allProfilesCount:
-          type: integer
-          format: int64
-        lastActivation:
-          type: string
-        links:
+        profiles:
           type: array
           items:
             $ref: '#/components/schemas/ActivationProfileRes'
+        lastEnrollment:
+          type: string
     ActivationProfileRes:
       title: ActivationProfileRes
       type: object
       properties:
-        code:
-          type: string
         name:
           type: string
-        enabled:
-          type: boolean
+        code:
+          type: string
+        url:
+          type: string
+        state:
+          type: string
+        activeDeviceCount:
+          type: integer
+          format: int64
   links: {}
   callbacks: {}
 security: []
